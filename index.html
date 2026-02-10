@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BiPS · Valoración biopsicosocial</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#ffffff; --card:#ffffff; --text:#111827; --muted:#4b5563;
+      --line:#e5e7eb; --soft:#f3f4f6; --shadow: 0 8px 24px rgba(0,0,0,.06);
+
+      --green-bg:#ecfdf5; --green-bd:#10b981;
+      --yellow-bg:#fffbeb; --yellow-bd:#f59e0b;
+      --red-bg:#fef2f2; --red-bd:#ef4444;
+    }
+
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:var(--text); }
+    .wrap{ max-width: 1180px; margin: 24px auto; padding: 0 16px; display:grid; grid-template-columns: 460px 1fr; gap:16px; }
+    .card{ background:var(--card); border:1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); }
+
+    .app-title{ font-size: 34px; font-weight: 900; margin: 0; letter-spacing: .3px; }
+    .app-subtitle{ margin: 2px 0 10px 0; color: var(--muted); font-weight: 800; font-size: 14px; }
+    .byline{ margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .note{ font-size:12px; color:var(--muted); line-height:1.45; }
+    h2{ font-size:14px; margin: 18px 0 10px 0; color:var(--muted); font-weight:900; }
+
+    label{ display:block; font-size:13px; margin: 14px 0 6px; color:var(--muted); font-weight: 800; }
+    input[type="text"]{ width:100%; background:#fff; border:1px solid var(--line); color:var(--text); padding: 10px 12px; border-radius: 12px; outline:none; font-weight: 700; }
+
+    .row{ display:flex; gap:10px; align-items:center; }
+    input[type="range"]{ width:100%; }
+    .pill{ min-width: 40px; text-align:center; background:var(--soft); border:1px solid var(--line); border-radius: 999px; padding: 4px 8px; font-size: 12px; color: var(--text); font-weight: 900; }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mini{ border:1px solid var(--line); border-radius: 14px; padding: 12px; background:#fff; }
+    .mini-title{ display:flex; justify-content: space-between; gap:10px; align-items: baseline; }
+    .mini-title b{ font-size: 13px; }
+    .mini-sub{ font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    button{ background:var(--soft); border:1px solid var(--line); color:var(--text); padding: 10px 12px; border-radius: 12px; cursor:pointer; font-weight: 900; }
+    button:hover{ filter: brightness(0.98); }
+
+    .badge{ display:inline-block; font-size:12px; padding: 4px 10px; border:1px solid var(--line); border-radius: 999px; background:var(--soft); color:var(--muted); font-weight: 900; }
+
+    .split{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:end; }
+    .chart-header{ display:flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 6px; margin-bottom: 10px; }
+    .chart-patient{ font-weight: 900; font-size: 14px; }
+    .chart-meta{ color: var(--muted); font-size: 12px; font-weight: 800; text-align: right; white-space: nowrap; }
+
+    .nic-card{ border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); background: #fff; }
+    .nic-maintain{ background: var(--green-bg); border-color: var(--green-bd); }
+    .nic-prevent{ background: var(--yellow-bg); border-color: var(--yellow-bd); }
+    .nic-priority{ background: var(--red-bg); border-color: var(--red-bd); }
+
+    .nic-top{ display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom: 8px; }
+    .nic-title b{ font-size: 13px; }
+    .nic-level{ font-size: 12px; font-weight: 900; color: var(--muted); }
+    .list{ margin:0; padding-left: 18px; }
+
+    .hist{ max-height: 240px; overflow:auto; border:1px dashed var(--line); border-radius: 12px; padding: 10px; background:#fff; }
+    .hist-item{ font-size:12px; color:var(--muted); padding: 10px; border-bottom: 1px solid var(--line); }
+    .hist-item:last-child{ border-bottom:none; }
+    .hist-actions{ display:flex; gap:8px; margin-top: 8px; flex-wrap: wrap; }
+    .hist-actions button{ padding: 7px 10px; border-radius: 10px; font-size: 12px; }
+
+    .footer{
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .table th, .table td{
+      border: 1px solid var(--line);
+      padding: 8px;
+      vertical-align: top;
+    }
+    .table th{ background: var(--soft); text-align:left; }
+
+    @media (max-width: 1020px){
+      .wrap{ grid-template-columns: 1fr; }
+      .chart-meta{ text-align:left; white-space: normal; }
+      .chart-header{ flex-direction: column; align-items:flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- IZQUIERDA -->
+    <div class="card">
+      <h1 class="app-title">BiPS</h1>
+      <div class="app-subtitle">Valoración biopsicosocial</div>
+      <div class="note">
+        Escala 0–4 en <b>sentido positivo</b> (0 = peor / 4 = mejor). Radar con 5 vértices (dimensiones),
+        pero la valoración interna usa <b>10 ítems</b> (2 por dimensión) con <b>ponderación</b>.
+      </div>
+      <div class="byline"><b>Prototipo TFG</b> · Iker Hervás Azkue · 4º Enfermería · UPNA</div>
+
+      <h2>Datos</h2>
+      <label>Identificador (anonimizado)</label>
+      <input id="patientId" type="text" placeholder="Ej: P-001" />
+      <label>Fecha</label>
+      <input id="date" type="text" placeholder="Ej: 2026-02-10" />
+
+      <h2>10 ítems (0–4, positivo)</h2>
+      <div class="grid2">
+
+        <div class="mini">
+          <div class="mini-title"><b>Dolor / síntomas</b><span class="badge" id="dom_pain">—</span></div>
+          <div class="mini-sub">Se agregan 2 ítems → 1 vértice del radar</div>
+
+          <label>1) Intensidad del dolor (mejor = menos dolor)</label>
+          <div class="row"><input id="i_pain1" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_pain1">3</div></div>
+
+          <label>2) Interferencia del dolor (mejor = menos interferencia)</label>
+          <div class="row"><input id="i_pain2" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_pain2">3</div></div>
+        </div>
+
+        <div class="mini">
+          <div class="mini-title"><b>Funcionalidad</b><span class="badge" id="dom_func">—</span></div>
+          <div class="mini-sub">2 ítems ponderados → 1 vértice</div>
+
+          <label>3) Autonomía en AVD</label>
+          <div class="row"><input id="i_func1" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_func1">3</div></div>
+
+          <label>4) Movilidad / tolerancia al esfuerzo</label>
+          <div class="row"><input id="i_func2" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_func2">3</div></div>
+        </div>
+
+        <div class="mini">
+          <div class="mini-title"><b>Bienestar emocional</b><span class="badge" id="dom_psy">—</span></div>
+          <div class="mini-sub">2 ítems ponderados → 1 vértice</div>
+
+          <label>5) Estado de ánimo</label>
+          <div class="row"><input id="i_psy1" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_psy1">3</div></div>
+
+          <label>6) Estrés / ansiedad (mejor = menos)</label>
+          <div class="row"><input id="i_psy2" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_psy2">3</div></div>
+        </div>
+
+        <div class="mini">
+          <div class="mini-title"><b>Red de apoyo</b><span class="badge" id="dom_soc">—</span></div>
+          <div class="mini-sub">2 ítems → 1 vértice</div>
+
+          <label>7) Apoyo familiar</label>
+          <div class="row"><input id="i_soc1" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_soc1">3</div></div>
+
+          <label>8) Apoyo comunitario / amistades</label>
+          <div class="row"><input id="i_soc2" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_soc2">3</div></div>
+        </div>
+
+        <div class="mini" style="grid-column: 1 / -1;">
+          <div class="mini-title"><b>Seguridad económica / recursos</b><span class="badge" id="dom_fin">—</span></div>
+          <div class="mini-sub">2 ítems ponderados → 1 vértice</div>
+
+          <label>9) Ingresos / estabilidad económica</label>
+          <div class="row"><input id="i_fin1" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_fin1">3</div></div>
+
+          <label>10) Vivienda / acceso a recursos básicos</label>
+          <div class="row"><input id="i_fin2" type="range" min="0" max="4" step="1" value="3" /><div class="pill" id="v_fin2">3</div></div>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="btnSave">Guardar (máx. 5)</button>
+        <button id="btnReset">Volver a “Actual”</button>
+        <button id="btnClear">Borrar historial</button>
+      </div>
+
+      <h2>Historial (últimas 5)</h2>
+      <div class="hist" id="history"></div>
+      <div class="note" style="margin-top:10px;">Consejo demo: guarda 4–5 valoraciones del mismo paciente (fechas distintas) y compara.</div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="card">
+      <div class="split">
+        <div>
+          <h2>Gráfico radial</h2>
+          <span class="badge" id="modeBadge">Modo: actual</span>
+        </div>
+        <div style="text-align:right;">
+          <div class="note">Comparación manual: “Comparar” en el historial.</div>
+        </div>
+      </div>
+
+      <div class="chart-header">
+        <div class="chart-patient" id="chartTitle">Perfil biopsicosocial — Paciente: —</div>
+        <div class="chart-meta" id="chartMeta">Fecha: —</div>
+      </div>
+
+      <canvas id="radar" height="260"></canvas>
+
+      <h2>Sugerencias (NIC) por dimensión (según puntuación agregada)</h2>
+      <div class="note">
+        Colores: <b style="color:#059669;">verde</b> (4 mantenimiento) ·
+        <b style="color:#b45309;">amarillo</b> (2–3 prevención/seguimiento) ·
+        <b style="color:#b91c1c;">rojo</b> (0–1 prioridad).
+      </div>
+
+      <div id="nicOutput" style="margin-top:10px;"></div>
+
+      <div class="footer">
+        <h2>Cómo se calculan los 5 vértices (ponderaciones)</h2>
+        <div class="note">
+          Cada dimensión del radar es una <b>media ponderada</b> de sus 2 ítems:
+          <b>Dimensión = (ítem1·peso1 + ítem2·peso2) / (peso1+peso2)</b>.
+          Pesos ajustables: aquí están definidos para demostrar que no todos los ítems tienen el mismo impacto.
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Dimensión del radar</th>
+              <th>Ítems incluidos</th>
+              <th>Pesos</th>
+              <th>Justificación (demo)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Dolor / síntomas</td>
+              <td>Intensidad, Interferencia</td>
+              <td>2 y 1</td>
+              <td>Se prioriza la intensidad como síntoma principal; la interferencia complementa impacto funcional.</td>
+            </tr>
+            <tr>
+              <td>Funcionalidad</td>
+              <td>AVD, Movilidad/esfuerzo</td>
+              <td>2 y 1</td>
+              <td>Las AVD reflejan autonomía global; la movilidad aporta matiz sobre capacidad física.</td>
+            </tr>
+            <tr>
+              <td>Bienestar emocional</td>
+              <td>Ánimo, Estrés/ansiedad</td>
+              <td>2 y 1</td>
+              <td>El ánimo se considera núcleo del bienestar percibido; estrés/ansiedad como modulador frecuente.</td>
+            </tr>
+            <tr>
+              <td>Red de apoyo</td>
+              <td>Familiar, Comunitario</td>
+              <td>1 y 1</td>
+              <td>Se consideran equivalentes para una visión integrada del apoyo social.</td>
+            </tr>
+            <tr>
+              <td>Seguridad económica / recursos</td>
+              <td>Ingresos, Vivienda/recursos</td>
+              <td>2 y 1</td>
+              <td>Ingresos condicionan estabilidad; vivienda/recursos completan necesidades básicas.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note" style="margin-top:10px;">
+          Nota: en la versión final del TFG, estas ponderaciones deberían derivarse de la evidencia o consenso experto (plan de validación).
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const STORAGE_KEY = "bps_history_v4";
+  const MAX_HISTORY = 5;
+
+  // Dimensiones del radar (5 vértices)
+  const DOMAINS = [
+    { key: "pain", label: "Dolor / síntomas" },
+    { key: "func", label: "Funcionalidad" },
+    { key: "psy",  label: "Bienestar emocional" },
+    { key: "soc",  label: "Red de apoyo" },
+    { key: "fin",  label: "Económico / recursos" },
+  ];
+
+  // 10 ítems: 2 por dimensión
+  const ITEMS = [
+    // pain
+    { id:"i_pain1", vid:"v_pain1", domain:"pain", label:"Intensidad dolor", weight:2 },
+    { id:"i_pain2", vid:"v_pain2", domain:"pain", label:"Interferencia dolor", weight:1 },
+    // func
+    { id:"i_func1", vid:"v_func1", domain:"func", label:"AVD", weight:2 },
+    { id:"i_func2", vid:"v_func2", domain:"func", label:"Movilidad/esfuerzo", weight:1 },
+    // psy
+    { id:"i_psy1",  vid:"v_psy1",  domain:"psy",  label:"Ánimo", weight:2 },
+    { id:"i_psy2",  vid:"v_psy2",  domain:"psy",  label:"Estrés/ansiedad", weight:1 },
+    // soc
+    { id:"i_soc1",  vid:"v_soc1",  domain:"soc",  label:"Apoyo familiar", weight:1 },
+    { id:"i_soc2",  vid:"v_soc2",  domain:"soc",  label:"Apoyo comunitario", weight:1 },
+    // fin
+    { id:"i_fin1",  vid:"v_fin1",  domain:"fin",  label:"Ingresos", weight:2 },
+    { id:"i_fin2",  vid:"v_fin2",  domain:"fin",  label:"Vivienda/recursos", weight:1 },
+  ];
+
+  // NIC demo por dimensión y bucket (positivo: 4 mejor)
+  const NIC_LIBRARY = {
+    pain: {
+      maintain: ["Educación para la salud: autocuidado", "Refuerzo del plan de control del dolor"],
+      prevent:  ["Manejo del dolor", "Vigilancia de síntomas", "Enseñanza: medicación / adherencia"],
+      priority: ["Manejo del dolor (plan intensivo)", "Manejo de síntomas", "Coordinación de cuidados / derivación según protocolo"]
+    },
+    func: {
+      maintain: ["Fomento del ejercicio (mantenimiento)", "Promoción de actividad física segura"],
+      prevent:  ["Manejo de la energía", "Entrenamiento AVD", "Prevención de caídas"],
+      priority: ["Prevención de caídas (plan intensivo)", "Rehabilitación / coordinación", "Manejo de la fatiga"]
+    },
+    psy: {
+      maintain: ["Apoyo emocional", "Mejorar afrontamiento (mantenimiento)"],
+      prevent:  ["Disminución de la ansiedad", "Técnicas de relajación", "Refuerzo positivo"],
+      priority: ["Manejo de crisis", "Prevención del suicidio (si aplica)", "Derivación / coordinación con salud mental según protocolo"]
+    },
+    soc: {
+      maintain: ["Potenciación de apoyo social", "Facilitar comunicación familiar"],
+      prevent:  ["Aumentar sistemas de apoyo", "Facilitar recursos comunitarios", "Acompañamiento"],
+      priority: ["Manejo del aislamiento social", "Coordinación con trabajo social", "Gestión de casos (si disponible)"]
+    },
+    fin: {
+      maintain: ["Orientación en recursos disponibles", "Educación sobre trámites / seguimiento"],
+      prevent:  ["Gestión de recursos", "Coordinación con recursos comunitarios", "Apoyo en adherencia a seguimiento"],
+      priority: ["Derivación a trabajo social", "Gestión de casos / coordinación", "Plan intensivo de seguimiento"]
+    }
+  };
+
+  function bucketPositive(score){
+    if (score === 4) return "maintain";
+    if (score >= 2) return "prevent";
+    return "priority";
+  }
+  function bucketLabel(bucket){
+    if (bucket === "maintain") return "Mantenimiento";
+    if (bucket === "prevent") return "Prevención / seguimiento";
+    return "Prioridad (déficit)";
+  }
+  function bucketClass(bucket){
+    if (bucket === "maintain") return "nic-maintain";
+    if (bucket === "prevent") return "nic-prevent";
+    return "nic-priority";
+  }
+
+  function getPatientMeta(){
+    return {
+      patientId: $("patientId").value.trim(),
+      date: $("date").value.trim()
+    };
+  }
+
+  function getItemScores(){
+    const s = {};
+    for (const it of ITEMS) s[it.id] = Number($(it.id).value);
+    return s;
+  }
+
+  function computeDomainScores(itemScores){
+    // media ponderada por dominio
+    const sums = {};
+    const ws = {};
+    for (const d of DOMAINS){ sums[d.key] = 0; ws[d.key] = 0; }
+
+    for (const it of ITEMS){
+      const val = itemScores[it.id];
+      sums[it.domain] += val * it.weight;
+      ws[it.domain] += it.weight;
+    }
+
+    const domainScores = {};
+    for (const d of DOMAINS){
+      domainScores[d.key] = ws[d.key] ? (sums[d.key] / ws[d.key]) : 0;
+      // Redondeo a 1 decimal (se ve mejor)
+      domainScores[d.key] = Math.round(domainScores[d.key] * 10) / 10;
+    }
+    return domainScores;
+  }
+
+  function updateDomainBadges(domainScores){
+    $("dom_pain").textContent = `${domainScores.pain}/4`;
+    $("dom_func").textContent = `${domainScores.func}/4`;
+    $("dom_psy").textContent  = `${domainScores.psy}/4`;
+    $("dom_soc").textContent  = `${domainScores.soc}/4`;
+    $("dom_fin").textContent  = `${domainScores.fin}/4`;
+  }
+
+  function updateHeader(titlePid, titleDate){
+    const pid = titlePid ?? getPatientMeta().patientId;
+    const date = titleDate ?? getPatientMeta().date;
+
+    $("chartTitle").textContent = `Perfil biopsicosocial — Paciente: ${pid || "—"}`;
+    $("chartMeta").textContent  = `Fecha: ${date || "—"}`;
+  }
+
+  function labels(){ return DOMAINS.map(d => d.label); }
+  function domainToArray(domainScores){ return DOMAINS.map(d => domainScores[d.key]); }
+
+  function renderNIC(domainScores){
+    // Prioriza el déficit (más bajo) en el radar (positivo)
+    const ranked = [...DOMAINS]
+      .map(d => ({...d, score: domainScores[d.key]}))
+      .sort((a,b) => a.score - b.score);
+
+    const top2 = ranked.slice(0,2);
+
+    let html = `<div class="note" style="margin:8px 0 10px;">
+      Áreas prioritarias (demo): <b>${top2[0].label}</b> y <b>${top2[1].label}</b>.
+    </div>`;
+
+    for (const d of ranked){
+      const b = bucketPositive(Math.round(d.score)); // bucket por aproximación (0-4)
+      const nics = NIC_LIBRARY[d.key][b];
+
+      html += `
+        <div class="nic-card ${bucketClass(b)}">
+          <div class="nic-top">
+            <div class="nic-title">
+              <b>${d.label}</b> <span class="badge">Score ${d.score}/4</span>
+            </div>
+            <div class="nic-level">${bucketLabel(b)}</div>
+          </div>
+          <ul class="list">${nics.map(x => `<li>${x}</li>`).join("")}</ul>
+        </div>
+      `;
+    }
+
+    $("nicOutput").innerHTML = html;
+  }
+
+  // --- Historial (máx. 5) ---
+  function loadHistory(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+    catch { return []; }
+  }
+
+  function saveHistory(entry){
+    const h = loadHistory();
+    h.push(entry);
+    // mantener solo las últimas MAX_HISTORY
+    const trimmed = h.slice(-MAX_HISTORY);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+  }
+
+  function clearHistory(){
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  function applyEntryToUI(entry){
+    $("patientId").value = entry.patientId || "";
+    $("date").value = entry.date || "";
+
+    // restaurar sliders
+    for (const it of ITEMS){
+      const val = entry.items[it.id];
+      $(it.id).value = val;
+      $(it.vid).textContent = val;
+    }
+
+    // refrescar todo
+    updateAllCurrent();
+  }
+
+  // --- Chart ---
+  const chart = new Chart($("radar"), {
+    type: "radar",
+    data: { labels: labels(), datasets: [{ label: "Actual", data: [3,3,3,3,3], fill: true }] },
+    options: {
+      responsive: true,
+      scales: { r: { suggestedMin: 0, suggestedMax: 4, ticks: { stepSize: 1 } } },
+      plugins: { legend: { position: "top" } }
+    }
+  });
+
+  function setChartToCurrent(domainScores){
+    chart.data.datasets = [{
+      label: "Actual",
+      data: domainToArray(domainScores),
+      fill: true
+    }];
+    chart.update();
+    $("modeBadge").textContent = "Modo: actual";
+  }
+
+  function compareWithEntry(selectedEntry){
+    const current = snapshotCurrent();
+    chart.data.datasets = [
+      { label: `Actual (${current.date || "sin fecha"})`, data: domainToArray(current.domainScores), fill: true },
+      { label: `Comparación (${selectedEntry.date || "sin fecha"})`, data: domainToArray(selectedEntry.domainScores), fill: false }
+    ];
+    chart.update();
+    $("modeBadge").textContent = "Modo: comparación (seleccionada)";
+    // Mantener encabezado del ACTUAL (no el comparado)
+    updateHeader(current.patientId, current.date);
+    renderNIC(current.domainScores);
+  }
+
+  function snapshotCurrent(){
+    const meta = getPatientMeta();
+    const items = getItemScores();
+    const domainScores = computeDomainScores(items);
+    return { ...meta, items, domainScores, createdAt: new Date().toISOString() };
+  }
+
+  function renderHistory(){
+    const history = loadHistory().slice().reverse(); // más reciente primero
+    if (history.length === 0){
+      $("history").innerHTML = `<div class="note">No hay valoraciones guardadas.</div>`;
+      return;
+    }
+
+    $("history").innerHTML = history.map((e, idx) => {
+      const short = `Dolor:${e.domainScores.pain} · Func:${e.domainScores.func} · Emo:${e.domainScores.psy} · Apoyo:${e.domainScores.soc} · Econ:${e.domainScores.fin}`;
+      // índice real en el array (para recuperar)
+      const realIndex = (loadHistory().length - 1) - idx;
+      return `
+        <div class="hist-item">
+          <b>${e.patientId || "Sin ID"}</b> · ${e.date || "Sin fecha"}<br/>
+          ${short}
+          <div class="hist-actions">
+            <button data-load="${realIndex}">Cargar</button>
+            <button data-compare="${realIndex}">Comparar con actual</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Wire botones del historial
+    const root = $("history");
+    root.querySelectorAll("button[data-load]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.getAttribute("data-load"));
+        const entry = loadHistory()[i];
+        if (!entry) return;
+        applyEntryToUI(entry);
+      });
+    });
+
+    root.querySelectorAll("button[data-compare]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.getAttribute("data-compare"));
+        const entry = loadHistory()[i];
+        if (!entry) return;
+        compareWithEntry(entry);
+      });
+    });
+  }
+
+  // --- Actualizaciones en vivo ---
+  function updateAllCurrent(){
+    const meta = getPatientMeta();
+    const items = getItemScores();
+    const domainScores = computeDomainScores(items);
+
+    updateHeader(meta.patientId, meta.date);
+    updateDomainBadges(domainScores);
+    setChartToCurrent(domainScores);
+    renderNIC(domainScores);
+  }
+
+  // Wire sliders -> actualizar pill + recalcular
+  for (const it of ITEMS){
+    const input = $(it.id);
+    const pill = $(it.vid);
+    input.addEventListener("input", () => {
+      pill.textContent = input.value;
+      updateAllCurrent();
+    });
+  }
+
+  // Wire ID/fecha -> actualizar cabecera
+  $("patientId").addEventListener("input", () => updateAllCurrent());
+  $("date").addEventListener("input", () => updateAllCurrent());
+
+  // Botones
+  $("btnSave").addEventListener("click", () => {
+    const entry = snapshotCurrent();
+    saveHistory(entry);
+    renderHistory();
+    alert(`Guardado. Se mantienen como máximo ${MAX_HISTORY} valoraciones.`);
+  });
+
+  $("btnReset").addEventListener("click", () => {
+    // vuelve a mostrar solo “Actual” en el radar
+    updateAllCurrent();
+  });
+
+  $("btnClear").addEventListener("click", () => {
+    if (!confirm("¿Borrar todo el historial guardado en este navegador?")) return;
+    clearHistory();
+    renderHistory();
+    updateAllCurrent();
+  });
+
+  // Init
+  renderHistory();
+  updateAllCurrent();
+</script>
+</body>
+</html>
